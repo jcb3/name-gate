@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jay</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #f4ecdf;
+    --dim: #b3a89a;
+    --bg: #1c1712;
+    --panel: #261f18;
+    --line: #3d342a;
+    --brass: #e0b15a;
+    --jay: #f0c14b;
+    --lurker: #d4654a;
+    --ally: #9caf88;
+    --corpse: #8d8478;
+    --good: #9caf88;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.45 ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+  header p { margin: 4px 0 0; color: var(--dim); font-size: 13px; }
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+  #log {
+    margin: 0;
+    padding: 14px 18px 18px;
+    overflow: auto;
+    white-space: pre-wrap;
+  }
+  .line { display: flex; gap: 12px; margin: 0 0 4px; }
+  .line.look { display: block; margin: 8px 0; }
+  .line.look pre { margin: 0; color: var(--dim); }
+  .when { color: var(--dim); min-width: 3.2em; }
+  .line.breakpoint .what { color: var(--brass); }
+  .line.hit .what { color: var(--lurker); }
+  .line.routine .what, .line.block .what { color: var(--good); }
+  .line.finisher .what { color: var(--ink); font-weight: 700; }
+  aside {
+    border-left: 1px solid var(--line);
+    background: var(--panel);
+    padding: 14px 16px 18px;
+    overflow: auto;
+  }
+  h2 {
+    margin: 16px 0 8px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brass);
+    font-weight: 600;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(5, 42px);
+    gap: 4px;
+  }
+  .cell {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    background: #14110e;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    font-weight: 700;
+  }
+  .cell.jay { color: var(--jay); border-color: #8a6a2e; }
+  .cell.lurker { color: var(--lurker); border-color: #7a3b2c; }
+  .cell.ally { color: var(--ally); border-color: #4d5c42; }
+  .cell.yarrow { color: #b7c98a; }
+  .cell.void { background: transparent; border-color: transparent; }
+  .cell.corpse { background: #2a261f; color: var(--corpse); }
+  .cell.jay.corpse, .cell.lurker.corpse { box-shadow: inset 0 0 0 2px var(--corpse); }
+  #status, #lurker, #note, .legend, .also {
+    margin: 8px 0 0;
+    color: var(--dim);
+    font-size: 13px;
+  }
+  #note { color: var(--ink); min-height: 1.45em; white-space: pre-line; }
+  #prompt { flex: 1 0 100%; margin: 0 0 6px; color: var(--brass); }
+  ul { margin: 0; padding-left: 1.1em; }
+  li { margin: 2px 0; }
+  code { color: var(--ink); }
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    background: #16130f;
+  }
+  label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  input {
+    flex: 1;
+    background: #100e0b;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 10px 12px;
+    font: inherit;
+  }
+  input:focus { outline: 1px solid var(--brass); border-color: var(--brass); }
+  button {
+    background: var(--brass);
+    color: #1c1712;
+    border: 0;
+    padding: 0 16px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; }
+    aside { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Jay</h1>
+  <p>The arena opens south into the lane, the cottage, the yard, and the yarrow patch. Guard starts on. A tick is 250ms.</p>
+</header>
+<main>
+  <div id="log" role="log" aria-live="polite"></div>
+  <aside>
+    <div id="grid" aria-label="Arena"></div>
+    <p id="status"></p>
+    <p id="lurker"></p>
+    <p id="note"></p>
+    <h2>Commands</h2>
+    <ul id="commands"></ul>
+    <p class="also">Also understood: hold, feint, roll &lt;dir&gt;, interrupt. Riposte is refused.</p>
+    <h2>Reserved</h2>
+    <ul id="reserved"></ul>
+    <p class="also">Accepted, not built. kick, ban, and unban are admin only. The others stay unused for every player.</p>
+    <h2>Breakpoint words</h2>
+    <p class="legend">The number stays hidden. −30 unsteady, −60 faltering, −90 collapsing, −100 broken. +30 pressing, +60 flowing, +90 overwhelming, +100 legendary. No bonus at legendary.</p>
+  </aside>
+</main>
+<form id="bar">
+  <p id="prompt"></p>
+  <label for="cmd">Command</label>
+  <input id="cmd" name="cmd" autocomplete="off" spellcheck="false" autofocus placeholder="look, dodge, step s…">
+  <button type="submit">Send</button>
+</form>
+<script src="./generate.js"></script>
+<script src="./engine.js"></script>
+<script>
+(function () {
+  let fight = null;
+  fetch("/procedural-generation.md").then((res) => (res.ok ? res.text() : "")).then((text) => {
+    if (text && FightEngine.setWordBook) FightEngine.setWordBook(text);
+    if (fight && fight.refreshGateHeld) fight.refreshGateHeld();
+  }).catch(() => {});
+  const params = new URLSearchParams(location.search);
+  const logEl = document.querySelector("#log");
+  const commands = document.querySelector("#commands");
+  for (const name of FightEngine.COMMANDS) {
+    const li = document.createElement("li");
+    const code = document.createElement("code");
+    code.textContent = name;
+    li.append(code);
+    commands.append(li);
+  }
+  const reserved = document.querySelector("#reserved");
+  for (const name of FightEngine.FRAMEWORK) {
+    const li = document.createElement("li");
+    const code = document.createElement("code");
+    code.textContent = name;
+    li.append(code);
+    reserved.append(li);
+  }
+
+  if (params.has("pass")) {
+    const result = FightEngine.scriptedPass();
+    logEl.textContent = result.lines.join("\n\n");
+    document.querySelector("#status").textContent = result.ok ? "Script pass." : "Script fail.";
+    document.querySelector("#note").textContent = result.ok
+      ? "The scripted pass finished."
+      : "The scripted pass failed.";
+    return;
+  }
+
+  fight = FightEngine.createFight({ court: true });
+  const history = [];
+  let cursor = 0;
+
+  function paintLog() {
+    logEl.replaceChildren();
+    for (const entry of fight.log) {
+      const row = document.createElement("div");
+      row.className = "line " + entry.kind;
+      if (entry.kind === "look") {
+        const pre = document.createElement("pre");
+        pre.textContent = entry.text;
+        row.append(pre);
+      } else {
+        const when = document.createElement("span");
+        when.className = "when";
+        when.textContent = "t" + entry.tick;
+        const what = document.createElement("span");
+        what.className = "what";
+        what.textContent = entry.text;
+        row.append(when, what);
+      }
+      logEl.append(row);
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function paintGrid() {
+    const grid = document.querySelector("#grid");
+    const view = fight.gridView();
+    grid.style.gridTemplateColumns = "repeat(" + view.width + ", 42px)";
+    grid.replaceChildren();
+    for (const spot of view.cells) {
+      const cell = document.createElement("div");
+      cell.className = "cell" + (spot.cls ? " " + spot.cls : "");
+      cell.textContent = spot.label;
+      const who = spot.label || (spot.cls === "void" ? "void" : "empty");
+      cell.setAttribute("aria-label", "x " + spot.x + " y " + spot.y + " " + who);
+      grid.append(cell);
+    }
+  }
+
+  function paintStatus() {
+    const jay = fight.jay;
+    const lurker = fight.lurker;
+    const bits = [
+      "tick " + fight.tick,
+      fight.placeName(jay.pos),
+      jay.holding || "empty hands",
+      "stamina " + jay.stamina,
+      "momentum " + jay.momentum,
+      "guard " + (fight.guardOn ? "on" : "off"),
+      "auto " + (fight.autoOn ? "on" : "off"),
+      jay.lock ? "lock " + jay.lock : "no lock",
+      jay.blocking ? "blocking" : "",
+      jay.pacified ? "pacified" : "",
+      fight.finisher ? "execute or mercy" : "",
+      fight.queue.length ? "queued " + fight.queue.map(function (item) {
+        return typeof item === "string" ? item : item.line;
+      }).join(", ") : "",
+    ].filter(Boolean);
+    document.querySelector("#status").textContent = bits.join("  ·  ");
+    document.querySelector("#lurker").textContent = "Lurker at " + lurker.pos.x + "," + lurker.pos.y
+      + (lurker.lock ? "  lock " + lurker.lock : "  no lock")
+      + (lurker.pacified ? "  pacified" : "");
+    document.querySelector("#note").textContent = fight.note || "";
+    const prompt = document.querySelector("#prompt");
+    if (prompt) prompt.textContent = fight.promptLine();
+  }
+
+  function paintIfNeeded(beforeLog, beforeSig) {
+    if (fight.log.length !== beforeLog || fight.signature() !== beforeSig) {
+      paintGrid();
+      paintLog();
+    }
+    paintStatus();
+  }
+
+  fight.suppressTutorial = true;
+  fight.input("look");
+  fight.suppressTutorial = false;
+  paintGrid();
+  paintLog();
+  paintStatus();
+
+  document.querySelector("#bar").addEventListener("submit", function (event) {
+    event.preventDefault();
+    const input = document.querySelector("#cmd");
+    const line = input.value.trim();
+    if (!line) return;
+    history.push(line);
+    cursor = history.length;
+    input.value = "";
+    const beforeLog = fight.log.length;
+    const beforeSig = fight.signature();
+    fight.input(line);
+    paintIfNeeded(beforeLog, beforeSig);
+  });
+
+  document.querySelector("#cmd").addEventListener("keydown", function (event) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    if (!history.length) return;
+    if (event.key === "ArrowUp") cursor = Math.max(0, cursor - 1);
+    else cursor = Math.min(history.length, cursor + 1);
+    event.target.value = cursor === history.length ? "" : history[cursor];
+  });
+
+  setInterval(function () {
+    const beforeLog = fight.log.length;
+    const beforeSig = fight.signature();
+    fight.advance();
+    paintIfNeeded(beforeLog, beforeSig);
+  }, FightEngine.TICK_MS);
+})();
+</script>
+</body>
+</html>
